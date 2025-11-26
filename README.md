@@ -120,7 +120,7 @@ Your project is clean — no SHA1-HULUD packages found.
 ```
 🔍 SHA1-HULUD Scanner v2.2 (Recursive Mode)
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-📁 Target directory: /path/to/monorepo
+📁 Target directory: /Users/username
 📋 288 packages to scan
 📋 5 known false positives to exclude
 
@@ -128,12 +128,12 @@ Your project is clean — no SHA1-HULUD packages found.
 ✓ Found 3 project(s)
 
 📋 Projects to scan:
-  • /path/to/monorepo/packages/api
-  • /path/to/monorepo/packages/web
-  • /path/to/monorepo/packages/shared
+  • /Users/username/project1
+  • /Users/username/work/api-service
+  • /Users/username/personal/my-app
 
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-📦 Project 1/3: /path/to/monorepo/packages/api
+📦 Project 1/3: /Users/username/project1
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
 🔎 [1/4] Scanning direct dependencies (package.json)...
