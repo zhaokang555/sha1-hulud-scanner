@@ -209,6 +209,91 @@ scan_single_project() {
   return 0
 }
 
+# Print list of projects to be scanned
+print_project_list() {
+  echo "📋 Projects to scan:"
+  for project in "${ALL_PROJECTS[@]}"; do
+    echo "  • $project"
+  done
+  echo ""
+}
+
+# Scan all projects in the list
+scan_all_projects() {
+  local total=${#ALL_PROJECTS[@]}
+
+  if [ $total -eq 0 ]; then
+    echo "⚠️  No projects found"
+    return
+  fi
+
+  for i in "${!ALL_PROJECTS[@]}"; do
+    local project="${ALL_PROJECTS[$i]}"
+    local progress=$((i + 1))
+
+    # Scan project (errors don't interrupt)
+    scan_single_project "$project" "$progress" "$total" || true
+  done
+}
+
+# Print summary of scan results
+print_summary() {
+  local total=${#ALL_PROJECTS[@]}
+  local compromised=${#COMPROMISED_PROJECTS[@]}
+  local failed=${#FAILED_PROJECTS[@]}
+  local clean=$((total - compromised - failed))
+
+  echo ""
+  echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+  echo "📊 SCAN SUMMARY"
+  echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+  echo "Total projects scanned: $total"
+  echo -e "✅ Clean projects: ${GREEN}$clean${NC}"
+
+  if [ $compromised -gt 0 ]; then
+    echo -e "🚨 Compromised projects: ${RED}$compromised${NC}"
+    echo ""
+    echo "Compromised projects:"
+    for proj in "${COMPROMISED_PROJECTS[@]}"; do
+      echo "  • $proj"
+    done
+  fi
+
+  if [ $failed -gt 0 ]; then
+    echo ""
+    echo -e "⚠️  Failed to scan: ${YELLOW}$failed${NC}"
+    for proj in "${FAILED_PROJECTS[@]}"; do
+      echo "  • $proj"
+    done
+  fi
+
+  # Remediation advice
+  if [ $compromised -gt 0 ]; then
+    echo ""
+    echo "⚠️  IMMEDIATE ACTION REQUIRED:"
+    echo "   1. 🛑 STOP all builds/CI immediately"
+    echo "   2. 🔒 Isolate CI runners (if self-hosted)"
+    echo "   3. 🔑 Rotate ALL sensitive keys:"
+    echo "      • GitHub tokens (PAT, fine-grained, App)"
+    echo "      • AWS credentials (if non-OIDC)"
+    echo "      • NPM tokens"
+    echo "      • API keys (PostHog, etc.)"
+    echo "   4. 🗑  Delete node_modules and lockfiles"
+    echo "   5. 📝 Update dependencies"
+    echo "   6. 🔍 Audit CI logs from last 48 hours"
+    echo ""
+  fi
+}
+
+# Exit with appropriate code
+exit_with_code() {
+  if [ ${#COMPROMISED_PROJECTS[@]} -gt 0 ]; then
+    exit 1  # Compromise detected
+  else
+    exit 0  # Clean
+  fi
+}
+
 echo ""
 echo "🔍 SHA1-HULUD Scanner v2.1"
 echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
