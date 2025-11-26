@@ -294,15 +294,101 @@ exit_with_code() {
   fi
 }
 
-echo ""
-echo "🔍 SHA1-HULUD Scanner v2.1"
-echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
-echo "📁 Project: $PROJECT_DIR"
-echo "📋 ${#COMPROMISED_PACKAGES[@]} packages to scan"
-echo "📋 ${#FALSE_POSITIVES[@]} known false positives to exclude"
-echo ""
+# Run recursive scan mode
+run_recursive_scan() {
+  echo ""
+  echo "🔍 SHA1-HULUD Scanner v2.2 (Recursive Mode)"
+  echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+  echo "📁 Target directory: $TARGET_DIR"
+  echo "📋 ${#COMPROMISED_PACKAGES[@]} packages to scan"
+  echo "📋 ${#FALSE_POSITIVES[@]} known false positives to exclude"
+  echo ""
 
-# Counters
+  find_all_projects
+  print_project_list
+  scan_all_projects
+  print_summary
+  exit_with_code
+}
+
+# Run single project scan mode (original behavior)
+run_single_scan() {
+  # Set PROJECT_DIR for backward compatibility
+  PROJECT_DIR="$TARGET_DIR"
+
+  echo ""
+  echo "🔍 SHA1-HULUD Scanner v2.2"
+  echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+  echo "📁 Project: $PROJECT_DIR"
+  echo "📋 ${#COMPROMISED_PACKAGES[@]} packages to scan"
+  echo "📋 ${#FALSE_POSITIVES[@]} known false positives to exclude"
+  echo ""
+
+  # Initialize counters for single scan
+  FOUND=0
+  FOUND_PACKAGES=()
+  TOTAL_CHECKS=0
+
+  # Run 4 scanning phases
+  scan_package_json
+  scan_node_modules
+  scan_lockfiles
+  scan_sha1_markers
+
+  echo ""
+  echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+
+  # Final result
+  if [ $FOUND -eq 0 ]; then
+    echo -e "${GREEN}✅ NO COMPROMISE DETECTED${NC}"
+    echo ""
+    echo "Your project is clean — no SHA1-HULUD packages found."
+    echo ""
+    echo "📊 Statistics:"
+    echo "   • ${#COMPROMISED_PACKAGES[@]} packages scanned"
+    echo "   • 0 compromised packages"
+    echo ""
+    exit 0
+  else
+    echo -e "${RED}🚨 $FOUND COMPROMISED PACKAGE(S) DETECTED${NC}"
+    echo ""
+    echo "📦 Packages found:"
+    for pkg in "${FOUND_PACKAGES[@]}"; do
+      echo "   • $pkg"
+    done
+    echo ""
+    echo "⚠️  IMMEDIATE ACTION REQUIRED:"
+    echo ""
+    echo "   1. 🛑 STOP all builds/CI immediately"
+    echo "   2. 🔒 Isolate CI runners (if self-hosted)"
+    echo "   3. 🔑 Rotate ALL sensitive keys:"
+    echo "      • GitHub tokens (PAT, fine-grained, App)"
+    echo "      • AWS credentials (if non-OIDC)"
+    echo "      • NPM tokens"
+    echo "      • API keys (PostHog, etc.)"
+    echo "   4. 🗑  Delete node_modules and lockfiles"
+    echo "   5. 📝 Update dependencies"
+    echo "   6. 🔍 Audit CI logs from last 48 hours"
+    echo ""
+    echo "📚 More info: https://helixguard.ai/blog/malicious-sha1hulud-2025-11-24"
+    echo ""
+    exit 1
+  fi
+}
+
+# Main entry point
+main() {
+  parse_arguments "$@"
+  load_packages
+
+  if [ "$RECURSIVE_MODE" = true ]; then
+    run_recursive_scan
+  else
+    run_single_scan
+  fi
+}
+
+# Counters (moved here for global scope)
 FOUND=0
 FOUND_PACKAGES=()
 TOTAL_CHECKS=0
@@ -558,48 +644,5 @@ scan_sha1_markers() {
   fi
 }
 
-# Run scans
-scan_package_json
-scan_node_modules
-scan_lockfiles
-scan_sha1_markers
-
-echo ""
-echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
-
-# Final result
-if [ $FOUND -eq 0 ]; then
-  echo -e "${GREEN}✅ NO COMPROMISE DETECTED${NC}"
-  echo ""
-  echo "Your project is clean — no SHA1-HULUD packages found."
-  echo ""
-  echo "📊 Statistics:"
-  echo "   • ${#COMPROMISED_PACKAGES[@]} packages scanned"
-  echo "   • 0 compromised packages"
-  echo ""
-  exit 0
-else
-  echo -e "${RED}🚨 $FOUND COMPROMISED PACKAGE(S) DETECTED${NC}"
-  echo ""
-  echo "📦 Packages found:"
-  for pkg in "${FOUND_PACKAGES[@]}"; do
-    echo "   • $pkg"
-  done
-  echo ""
-  echo "⚠️  IMMEDIATE ACTION REQUIRED:"
-  echo ""
-  echo "   1. 🛑 STOP all builds/CI immediately"
-  echo "   2. 🔒 Isolate CI runners (if self-hosted)"
-  echo "   3. 🔑 Rotate ALL sensitive keys:"
-  echo "      • GitHub tokens (PAT, fine-grained, App)"
-  echo "      • AWS credentials (if non-OIDC)"
-  echo "      • NPM tokens"
-  echo "      • API keys (PostHog, etc.)"
-  echo "   4. 🗑  Delete node_modules and lockfiles"
-  echo "   5. 📝 Update dependencies"
-  echo "   6. 🔍 Audit CI logs from last 48 hours"
-  echo ""
-  echo "📚 More info: https://helixguard.ai/blog/malicious-sha1hulud-2025-11-24"
-  echo ""
-  exit 1
-fi
+# Run main function with all arguments
+main "$@"
