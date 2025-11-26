@@ -49,7 +49,7 @@ chmod +x sha1-hulud-scanner.sh
 ./sha1-hulud-scanner.sh <project_directory>
 ```
 
-### 递归模式（用于 Monorepo）
+### 递归模式（多项目扫描）
 
 ```bash
 ./sha1-hulud-scanner.sh -r <parent_directory>

@@ -49,7 +49,7 @@ chmod +x sha1-hulud-scanner.sh
 ./sha1-hulud-scanner.sh <project_directory>
 ```
 
-### Recursive Mode (for Monorepos)
+### Recursive Mode (Multiple Projects)
 
 ```bash
 ./sha1-hulud-scanner.sh -r <parent_directory>
