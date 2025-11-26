@@ -171,6 +171,44 @@ validate_project() {
   return 0
 }
 
+# Scan a single project (used in recursive mode)
+scan_single_project() {
+  local project_dir="$1"
+  local project_num="$2"
+  local total_projects="$3"
+
+  # Reset counters for this project
+  FOUND=0
+  FOUND_PACKAGES=()
+  TOTAL_CHECKS=0
+
+  # Validate project
+  echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+  echo "📦 Project $project_num/$total_projects: $project_dir"
+  echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+  echo ""
+
+  if ! validate_project "$project_dir"; then
+    FAILED_PROJECTS+=("$project_dir")
+    echo ""
+    return 1
+  fi
+
+  # Run 4 scanning phases
+  scan_package_json "$project_dir" || true
+  scan_node_modules "$project_dir" || true
+  scan_lockfiles "$project_dir" || true
+  scan_sha1_markers "$project_dir" || true
+
+  # Save result if compromised
+  if [ $FOUND -gt 0 ]; then
+    COMPROMISED_PROJECTS+=("$project_dir")
+  fi
+
+  echo ""
+  return 0
+}
+
 echo ""
 echo "🔍 SHA1-HULUD Scanner v2.1"
 echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
@@ -186,9 +224,11 @@ TOTAL_CHECKS=0
 
 # Scan direct dependencies
 scan_package_json() {
+  local project_dir="${1:-$PROJECT_DIR}"
+
   echo "🔎 [1/4] Scanning direct dependencies (package.json)..."
 
-  if [ ! -f "$PROJECT_DIR/package.json" ]; then
+  if [ ! -f "$project_dir/package.json" ]; then
     return
   fi
 
@@ -196,7 +236,7 @@ scan_package_json() {
     TOTAL_CHECKS=$((TOTAL_CHECKS + 1))
 
     # Search in dependencies and devDependencies
-    if grep -q "\"$package\"" "$PROJECT_DIR/package.json" 2>/dev/null; then
+    if grep -q "\"$package\"" "$project_dir/package.json" 2>/dev/null; then
       echo -e "  ${RED}⚠️  FOUND: $package in package.json${NC}"
       FOUND=$((FOUND + 1))
       FOUND_PACKAGES+=("$package (direct)")
@@ -210,10 +250,12 @@ scan_package_json() {
 
 # Scan node_modules
 scan_node_modules() {
+  local project_dir="${1:-$PROJECT_DIR}"
+
   echo ""
   echo "🔎 [2/4] Scanning node_modules (transitive)..."
 
-  if [ ! -d "$PROJECT_DIR/node_modules" ]; then
+  if [ ! -d "$project_dir/node_modules" ]; then
     echo -e "  ${YELLOW}⚠️  node_modules not found (run 'npm install' first)${NC}"
     return
   fi
@@ -225,7 +267,7 @@ scan_node_modules() {
 
     # For scoped packages (@xxx/), search exact folder
     if [[ "$package" == @*/* ]]; then
-      if [ -d "$PROJECT_DIR/node_modules/$package" ]; then
+      if [ -d "$project_dir/node_modules/$package" ]; then
         echo -e "  ${RED}🚨 FOUND: $package installed${NC}"
         FOUND=$((FOUND + 1))
         FOUND_PACKAGES+=("$package (transitive)")
@@ -233,7 +275,7 @@ scan_node_modules() {
       fi
     else
       # For non-scoped packages
-      if [ -d "$PROJECT_DIR/node_modules/$package" ]; then
+      if [ -d "$project_dir/node_modules/$package" ]; then
         echo -e "  ${RED}🚨 FOUND: $package installed${NC}"
         FOUND=$((FOUND + 1))
         FOUND_PACKAGES+=("$package (transitive)")
@@ -249,16 +291,18 @@ scan_node_modules() {
 
 # Scan lockfiles
 scan_lockfiles() {
+  local project_dir="${1:-$PROJECT_DIR}"
+
   echo ""
   echo "🔎 [3/4] Scanning lockfiles..."
 
   local found_in_locks=0
 
   # package-lock.json
-  if [ -f "$PROJECT_DIR/package-lock.json" ]; then
+  if [ -f "$project_dir/package-lock.json" ]; then
     echo "  📄 Scanning package-lock.json..."
     for package in "${COMPROMISED_PACKAGES[@]}"; do
-      if grep -q "\"$package\"" "$PROJECT_DIR/package-lock.json" 2>/dev/null; then
+      if grep -q "\"$package\"" "$project_dir/package-lock.json" 2>/dev/null; then
         echo -e "    ${RED}⚠️  FOUND: $package${NC}"
         FOUND=$((FOUND + 1))
         FOUND_PACKAGES+=("$package (lockfile)")
@@ -268,10 +312,10 @@ scan_lockfiles() {
   fi
 
   # yarn.lock
-  if [ -f "$PROJECT_DIR/yarn.lock" ]; then
+  if [ -f "$project_dir/yarn.lock" ]; then
     echo "  📄 Scanning yarn.lock..."
     for package in "${COMPROMISED_PACKAGES[@]}"; do
-      if grep -q "$package@" "$PROJECT_DIR/yarn.lock" 2>/dev/null; then
+      if grep -q "$package@" "$project_dir/yarn.lock" 2>/dev/null; then
         echo -e "    ${RED}⚠️  FOUND: $package${NC}"
         FOUND=$((FOUND + 1))
         FOUND_PACKAGES+=("$package (lockfile)")
@@ -281,10 +325,10 @@ scan_lockfiles() {
   fi
 
   # bun.lock (binary file - use strings)
-  if [ -f "$PROJECT_DIR/bun.lock" ]; then
+  if [ -f "$project_dir/bun.lock" ]; then
     echo "  📄 Scanning bun.lock..."
     for package in "${COMPROMISED_PACKAGES[@]}"; do
-      if strings "$PROJECT_DIR/bun.lock" 2>/dev/null | grep -q "$package"; then
+      if strings "$project_dir/bun.lock" 2>/dev/null | grep -q "$package"; then
         echo -e "    ${RED}⚠️  FOUND: $package${NC}"
         FOUND=$((FOUND + 1))
         FOUND_PACKAGES+=("$package (lockfile)")
@@ -294,10 +338,10 @@ scan_lockfiles() {
   fi
 
   # pnpm-lock.yaml
-  if [ -f "$PROJECT_DIR/pnpm-lock.yaml" ]; then
+  if [ -f "$project_dir/pnpm-lock.yaml" ]; then
     echo "  📄 Scanning pnpm-lock.yaml..."
     for package in "${COMPROMISED_PACKAGES[@]}"; do
-      if grep -q "$package" "$PROJECT_DIR/pnpm-lock.yaml" 2>/dev/null; then
+      if grep -q "$package" "$project_dir/pnpm-lock.yaml" 2>/dev/null; then
         echo -e "    ${RED}⚠️  FOUND: $package${NC}"
         FOUND=$((FOUND + 1))
         FOUND_PACKAGES+=("$package (lockfile)")
@@ -324,6 +368,8 @@ is_false_positive() {
 
 # Search for SHA1-HULUD markers
 scan_sha1_markers() {
+  local project_dir="${1:-$PROJECT_DIR}"
+
   echo ""
   echo "🔎 [4/4] Scanning for SHA1-HULUD markers..."
 
@@ -331,8 +377,8 @@ scan_sha1_markers() {
   local false_positive_count=0
 
   # Search for packages with "sha1" in their name in package-lock.json
-  if [ -f "$PROJECT_DIR/package-lock.json" ]; then
-    local sha1_packages=$(grep -oE '"[^"]*sha1[^"]*"' "$PROJECT_DIR/package-lock.json" 2>/dev/null | sed 's/"//g' | sort -u | grep -v "sha512\|sha256")
+  if [ -f "$project_dir/package-lock.json" ]; then
+    local sha1_packages=$(grep -oE '"[^"]*sha1[^"]*"' "$project_dir/package-lock.json" 2>/dev/null | sed 's/"//g' | sort -u | grep -v "sha512\|sha256")
 
     if [ -n "$sha1_packages" ]; then
       echo "  📄 Checking packages with 'sha1' in name (package-lock.json):"
@@ -353,8 +399,8 @@ scan_sha1_markers() {
   fi
 
   # Search for packages with "sha1" in their name in yarn.lock
-  if [ -f "$PROJECT_DIR/yarn.lock" ]; then
-    local sha1_packages=$(grep -E "sha1" "$PROJECT_DIR/yarn.lock" 2>/dev/null | grep -oE '^[^@]*@[^@]+@|^@[^"]+@' | sed 's/@$//' | grep "sha1" | sort -u | grep -v "sha512\|sha256")
+  if [ -f "$project_dir/yarn.lock" ]; then
+    local sha1_packages=$(grep -E "sha1" "$project_dir/yarn.lock" 2>/dev/null | grep -oE '^[^@]*@[^@]+@|^@[^"]+@' | sed 's/@$//' | grep "sha1" | sort -u | grep -v "sha512\|sha256")
 
     if [ -n "$sha1_packages" ]; then
       echo "  📄 Checking packages with 'sha1' in name (yarn.lock):"
@@ -375,8 +421,8 @@ scan_sha1_markers() {
   fi
 
   # Search for packages with "sha1" in their name in bun.lock
-  if [ -f "$PROJECT_DIR/bun.lock" ]; then
-    local sha1_packages=$(strings "$PROJECT_DIR/bun.lock" 2>/dev/null | grep "sha1" | grep -oE '@[a-zA-Z0-9_/-]+sha1[a-zA-Z0-9_-]*|sha1[a-zA-Z0-9_-]+' | sort -u | grep -v "sha512\|sha256")
+  if [ -f "$project_dir/bun.lock" ]; then
+    local sha1_packages=$(strings "$project_dir/bun.lock" 2>/dev/null | grep "sha1" | grep -oE '@[a-zA-Z0-9_/-]+sha1[a-zA-Z0-9_-]*|sha1[a-zA-Z0-9_-]+' | sort -u | grep -v "sha512\|sha256")
 
     if [ -n "$sha1_packages" ]; then
       echo "  📄 Checking packages with 'sha1' in name (bun.lock):"
@@ -397,8 +443,8 @@ scan_sha1_markers() {
   fi
 
   # Search for packages with "sha1" in their name in pnpm-lock.yaml
-  if [ -f "$PROJECT_DIR/pnpm-lock.yaml" ]; then
-    local sha1_packages=$(grep "sha1" "$PROJECT_DIR/pnpm-lock.yaml" 2>/dev/null | grep -oE '[^/]+sha1[^:]*' | sort -u | grep -v "sha512\|sha256")
+  if [ -f "$project_dir/pnpm-lock.yaml" ]; then
+    local sha1_packages=$(grep "sha1" "$project_dir/pnpm-lock.yaml" 2>/dev/null | grep -oE '[^/]+sha1[^:]*' | sort -u | grep -v "sha512\|sha256")
 
     if [ -n "$sha1_packages" ]; then
       echo "  📄 Checking packages with 'sha1' in name (pnpm-lock.yaml):"
