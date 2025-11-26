@@ -38,7 +38,7 @@ SHA1-HULUD pt 2 是一次针对 288+ 个 npm 包的供应链攻击，包括：
 ## 📦 安装
 
 ```bash
-git clone https://github.com/standujar/sha1-hulud-scanner.git
+git clone https://github.com/zhaokang555/sha1-hulud-scanner.git
 cd sha1-hulud-scanner
 chmod +x sha1-hulud-scanner.sh
 ```
@@ -227,7 +227,7 @@ MIT License - 欢迎使用此扫描器保护您的项目。
 
 ```bash
 # 克隆并运行
-git clone https://github.com/standujar/sha1-hulud-scanner.git
+git clone https://github.com/zhaokang555/sha1-hulud-scanner.git
 cd sha1-hulud-scanner
 chmod +x sha1-hulud-scanner.sh
 ./sha1-hulud-scanner.sh /path/to/your/project
