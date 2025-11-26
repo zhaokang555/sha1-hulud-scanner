@@ -2,6 +2,8 @@
 
 A comprehensive bash scanner to detect compromised npm packages from the SHA1-HULUD pt 2 supply chain attack.
 
+English | [简体中文](README.zh-CN.md)
+
 ## 🚨 About SHA1-HULUD pt 2
 
 SHA1-HULUD pt 2 is a supply chain attack targeting 288+ npm packages including:
@@ -18,6 +20,7 @@ SHA1-HULUD pt 2 is a supply chain attack targeting 288+ npm packages including:
 ## ✨ Features
 
 - ✅ Scans **288+ compromised packages** from SHA1-HULUD pt 2
+- ✅ **Recursive scanning** for monorepos and multi-project directories
 - ✅ Multi-package manager support: **npm**, **yarn**, **bun**, **pnpm**
 - ✅ 4-stage scanning:
   - Direct dependencies (`package.json`)
@@ -26,6 +29,8 @@ SHA1-HULUD pt 2 is a supply chain attack targeting 288+ npm packages including:
   - SHA1 markers detection
 - ✅ **False positive filtering** for legitimate packages like `@aws-crypto/sha1-browser`
 - ✅ Shows **specific package names** when SHA1 markers detected
+- ✅ **Fault-tolerant**: continues scanning even if individual projects fail
+- ✅ **Comprehensive summary** with statistics and failed project tracking
 - ✅ Clear color-coded output with actionable remediation steps
 
 ## 📦 Installation
@@ -38,27 +43,49 @@ chmod +x sha1-hulud-scanner.sh
 
 ## 🚀 Usage
 
+### Single Project Mode
+
 ```bash
 ./sha1-hulud-scanner.sh <project_directory>
 ```
 
+### Recursive Mode (for Monorepos)
+
+```bash
+./sha1-hulud-scanner.sh -r <parent_directory>
+```
+
+### Options
+
+- `-r, --recursive` - Enable recursive scanning (scans all Node.js projects up to 3 levels deep)
+- `-h, --help` - Show help message
+- `-v, --version` - Show version information
+
 ### Examples
 
 ```bash
-# Scan a local project
+# Scan a single project
 ./sha1-hulud-scanner.sh /path/to/your/project
 
-# Scan relative path
-./sha1-hulud-scanner.sh ~/Projects/my-app
+# Scan a monorepo recursively
+./sha1-hulud-scanner.sh -r /path/to/monorepo
+
+# Scan all projects in a directory
+./sha1-hulud-scanner.sh -r ~/Projects
 
 # Scan current directory
 ./sha1-hulud-scanner.sh .
+
+# Scan current directory recursively
+./sha1-hulud-scanner.sh -r .
 ```
 
-## 📊 Output Example
+## 📊 Output Examples
+
+### Single Project Mode
 
 ```
-🔍 SHA1-HULUD Scanner v2.1
+🔍 SHA1-HULUD Scanner v2.2
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 📁 Project: /path/to/project
 📋 288 packages to scan
@@ -86,6 +113,38 @@ Your project is clean — no SHA1-HULUD packages found.
 📊 Statistics:
    • 288 packages scanned
    • 0 compromised packages
+```
+
+### Recursive Mode
+
+```
+🔍 SHA1-HULUD Scanner v2.2 (Recursive Mode)
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+📁 Target directory: /path/to/monorepo
+📋 288 packages to scan
+📋 5 known false positives to exclude
+
+🔎 Finding Node.js projects...
+✓ Found 3 project(s)
+
+📋 Projects to scan:
+  • /path/to/monorepo/packages/api
+  • /path/to/monorepo/packages/web
+  • /path/to/monorepo/packages/shared
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+📦 Project 1/3: /path/to/monorepo/packages/api
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+🔎 [1/4] Scanning direct dependencies (package.json)...
+  ✓ No compromised packages in direct dependencies
+...
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+📊 SCAN SUMMARY
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+Total projects scanned: 3
+✅ Clean projects: 3
 ```
 
 ## 🛡️ What it Checks
