@@ -2,6 +2,8 @@
 
 一个全面的 bash 扫描工具，用于检测 SHA1-HULUD pt 2 供应链攻击中受感染的 npm 包。
 
+**在 [原版](https://github.com/standujar/sha1-hulud-scanner) 的基础上，我添加了递归扫描功能（v2.2，https://github.com/zhaokang555/sha1-hulud-scanner ），使其能够一次性扫描整个目录树中的所有 Node.js 项目，极大地提升了扫描效率和覆盖范围。**
+
 [English](README.md) | 简体中文
 
 ## 🚨 关于 SHA1-HULUD pt 2

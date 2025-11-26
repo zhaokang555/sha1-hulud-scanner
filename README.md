@@ -2,6 +2,8 @@
 
 A comprehensive bash scanner to detect compromised npm packages from the SHA1-HULUD pt 2 supply chain attack.
 
+**Based on the [original version](https://github.com/standujar/sha1-hulud-scanner), I added recursive scanning functionality (v2.2, https://github.com/zhaokang555/sha1-hulud-scanner), enabling one-command scanning of all Node.js projects in a directory tree, significantly improving scanning efficiency and coverage.**
+
 English | [简体中文](README.zh-CN.md)
 
 ## 🚨 About SHA1-HULUD pt 2
