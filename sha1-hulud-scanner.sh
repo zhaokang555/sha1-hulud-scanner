@@ -2,7 +2,7 @@
 # SHA1-HULUD Scanner - Complete version with 350+ packages
 # Scans a Node.js project to detect compromised packages
 
-set -e
+# Note: set -e removed for fault tolerance in recursive mode
 
 # Colors
 RED='\033[0;31m'
@@ -20,40 +20,87 @@ FALSE_POSITIVES=(
   "sha.js"
 )
 
+# Configuration constants for recursive mode
+RECURSIVE_MODE=false
+TARGET_DIR=""
+MAX_DEPTH=3
+EXCLUDE_DIRS=("node_modules" ".git" "dist" "build" ".next" "out" "coverage" ".turbo" ".cache")
+
+# Runtime state for recursive mode
+declare -a ALL_PROJECTS=()
+declare -a COMPROMISED_PROJECTS=()
+declare -a FAILED_PROJECTS=()
+
 # Show help
 show_help() {
-  echo "Usage: $0 <project_directory>"
+  echo "SHA1-HULUD Scanner v2.2"
   echo ""
-  echo "Scans a Node.js project to detect packages compromised by SHA1-HULUD pt 2"
+  echo "Usage: $0 [OPTIONS] <directory>"
   echo ""
-  echo "Example:"
-  echo "  $0 /path/to/project"
-  echo "  $0 ~/Projects/my-project"
+  echo "Options:"
+  echo "  -r, --recursive    Enable recursive scanning (max depth: 3)"
+  echo "  -h, --help         Show this help"
+  echo "  -v, --version      Show version"
   echo ""
-  echo "The script uses sha1-hulud-packages.txt file (288+ packages)"
+  echo "Examples:"
+  echo "  $0 /path/to/project          # Single project"
+  echo "  $0 -r /path/to/monorepo      # Recursive scan"
+  echo ""
+  echo "Excluded directories: node_modules, .git, dist, build, .next, out, coverage, .turbo, .cache"
 }
 
-# Check if argument provided
-if [ $# -eq 0 ]; then
-  echo -e "${RED}❌ Error: No directory specified${NC}"
-  echo ""
-  show_help
-  exit 1
-fi
+# Parse arguments
+parse_arguments() {
+  while [[ $# -gt 0 ]]; do
+    case "$1" in
+      -r|--recursive)
+        RECURSIVE_MODE=true
+        shift
+        ;;
+      -h|--help)
+        show_help
+        exit 0
+        ;;
+      -v|--version)
+        echo "SHA1-HULUD Scanner v2.2"
+        exit 0
+        ;;
+      -*)
+        echo -e "${RED}❌ Error: Unknown option $1${NC}"
+        echo ""
+        show_help
+        exit 1
+        ;;
+      *)
+        TARGET_DIR="$1"
+        shift
+        ;;
+    esac
+  done
 
-PROJECT_DIR="$1"
+  # Validate directory argument
+  if [ -z "$TARGET_DIR" ]; then
+    echo -e "${RED}❌ Error: No directory specified${NC}"
+    echo ""
+    show_help
+    exit 1
+  fi
 
-# Check if directory exists
-if [ ! -d "$PROJECT_DIR" ]; then
-  echo -e "${RED}❌ Error: Directory '$PROJECT_DIR' does not exist${NC}"
-  exit 1
-fi
+  if [ ! -d "$TARGET_DIR" ]; then
+    echo -e "${RED}❌ Error: Directory not found: $TARGET_DIR${NC}"
+    exit 1
+  fi
 
-# Check if it's a Node.js project
-if [ ! -f "$PROJECT_DIR/package.json" ]; then
-  echo -e "${RED}❌ Error: No package.json found in '$PROJECT_DIR'${NC}"
-  exit 1
-fi
+  # For single project mode, verify package.json exists
+  if [ "$RECURSIVE_MODE" = false ] && [ ! -f "$TARGET_DIR/package.json" ]; then
+    echo -e "${RED}❌ Error: No package.json found in '$TARGET_DIR'${NC}"
+    echo "Use -r flag for recursive scanning if this is a parent directory."
+    exit 1
+  fi
+}
+
+# Legacy compatibility: set PROJECT_DIR for existing functions
+PROJECT_DIR=""
 
 # File containing list of compromised packages
 PACKAGES_FILE="$(dirname "$0")/sha1-hulud-packages.txt"
