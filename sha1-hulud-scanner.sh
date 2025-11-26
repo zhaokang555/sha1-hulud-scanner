@@ -105,22 +105,71 @@ PROJECT_DIR=""
 # File containing list of compromised packages
 PACKAGES_FILE="$(dirname "$0")/sha1-hulud-packages.txt"
 
-# Load package list
-if [ ! -f "$PACKAGES_FILE" ]; then
-  echo -e "${RED}❌ Error: Package file not found: $PACKAGES_FILE${NC}"
-  echo ""
-  echo "Create sha1-hulud-packages.txt in the same directory as this script."
-  exit 1
-fi
-
-# Read packages (ignore empty lines and comments)
+# Global array for compromised packages
 COMPROMISED_PACKAGES=()
-while IFS= read -r line; do
-  # Ignore comments and empty lines
-  [[ "$line" =~ ^#.*$ ]] && continue
-  [[ -z "$line" ]] && continue
-  COMPROMISED_PACKAGES+=("$line")
-done < "$PACKAGES_FILE"
+
+# Load package list from file
+load_packages() {
+  if [ ! -f "$PACKAGES_FILE" ]; then
+    echo -e "${RED}❌ Error: Package file not found: $PACKAGES_FILE${NC}"
+    echo ""
+    echo "Create sha1-hulud-packages.txt in the same directory as this script."
+    exit 1
+  fi
+
+  # Read packages (ignore empty lines and comments)
+  COMPROMISED_PACKAGES=()
+  while IFS= read -r line; do
+    # Ignore comments and empty lines
+    [[ "$line" =~ ^#.*$ ]] && continue
+    [[ -z "$line" ]] && continue
+    COMPROMISED_PACKAGES+=("$line")
+  done < "$PACKAGES_FILE"
+}
+
+# Find all Node.js projects in directory tree
+find_all_projects() {
+  echo "🔎 Finding Node.js projects..."
+
+  # Build prune arguments for excluded directories
+  local prune_args=""
+  for dir in "${EXCLUDE_DIRS[@]}"; do
+    prune_args="$prune_args -path '*/$dir' -prune -o"
+  done
+
+  # Find all package.json files, extract directory paths
+  local found_projects=$(find "$TARGET_DIR" -maxdepth "$MAX_DEPTH" \
+    $prune_args \
+    -name "package.json" -print 2>/dev/null | \
+    sed 's|/package.json$||' | \
+    sort -u)
+
+  # Convert to array
+  ALL_PROJECTS=()
+  while IFS= read -r line; do
+    [ -n "$line" ] && ALL_PROJECTS+=("$line")
+  done <<< "$found_projects"
+
+  echo "✓ Found ${#ALL_PROJECTS[@]} project(s)"
+  echo ""
+}
+
+# Validate that a directory is a valid Node.js project
+validate_project() {
+  local project_dir="$1"
+
+  if [ ! -f "$project_dir/package.json" ]; then
+    echo -e "  ${YELLOW}⚠️  Skipped: No package.json found${NC}"
+    return 1
+  fi
+
+  if ! grep -q "\"name\"" "$project_dir/package.json" 2>/dev/null; then
+    echo -e "  ${YELLOW}⚠️  Skipped: Invalid package.json${NC}"
+    return 1
+  fi
+
+  return 0
+}
 
 echo ""
 echo "🔍 SHA1-HULUD Scanner v2.1"
