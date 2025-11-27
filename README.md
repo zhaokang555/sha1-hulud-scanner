@@ -59,7 +59,8 @@ chmod +x sha1-hulud-scanner.sh
 
 ### Options
 
-- `-r, --recursive` - Enable recursive scanning (scans all Node.js projects up to 10 levels deep)
+- `-r, --recursive` - Enable recursive scanning (default depth: 5 levels)
+- `-d, --depth <N>` - Set maximum scan depth for recursive mode (default: 5)
 - `-h, --help` - Show help message
 - `-v, --version` - Show version information
 
@@ -69,16 +70,19 @@ chmod +x sha1-hulud-scanner.sh
 # Scan a single project
 ./sha1-hulud-scanner.sh /path/to/your/project
 
-# Scan a monorepo recursively
+# Scan a monorepo recursively (default depth: 5)
 ./sha1-hulud-scanner.sh -r /path/to/monorepo
 
-# Scan all projects in a directory
-./sha1-hulud-scanner.sh -r ~/Projects
+# Recursive scan with custom depth of 10 levels
+./sha1-hulud-scanner.sh -r -d 10 /path/to/monorepo
+
+# Scan all projects in a directory (depth: 3)
+./sha1-hulud-scanner.sh -r --depth 3 ~/Projects
 
 # Scan current directory
 ./sha1-hulud-scanner.sh .
 
-# Scan current directory recursively
+# Scan current directory recursively (depth: 5)
 ./sha1-hulud-scanner.sh -r .
 ```
 

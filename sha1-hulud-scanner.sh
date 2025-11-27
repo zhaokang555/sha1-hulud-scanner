@@ -23,7 +23,7 @@ FALSE_POSITIVES=(
 # Configuration constants for recursive mode
 RECURSIVE_MODE=false
 TARGET_DIR=""
-MAX_DEPTH=10
+MAX_DEPTH=5
 EXCLUDE_DIRS=("node_modules" ".git" "dist" "build" ".next" "out" "coverage" ".turbo" ".cache")
 
 # Runtime state for recursive mode
@@ -38,13 +38,16 @@ show_help() {
   echo "Usage: $0 [OPTIONS] <directory>"
   echo ""
   echo "Options:"
-  echo "  -r, --recursive    Enable recursive scanning (max depth: 10)"
-  echo "  -h, --help         Show this help"
-  echo "  -v, --version      Show version"
+  echo "  -r, --recursive       Enable recursive scanning (default depth: 5)"
+  echo "  -d, --depth <N>       Set max scan depth for recursive mode (default: 5)"
+  echo "  -h, --help            Show this help"
+  echo "  -v, --version         Show version"
   echo ""
   echo "Examples:"
-  echo "  $0 /path/to/project          # Single project"
-  echo "  $0 -r /path/to/monorepo      # Recursive scan"
+  echo "  $0 /path/to/project                 # Single project"
+  echo "  $0 -r /path/to/monorepo             # Recursive scan (depth: 5)"
+  echo "  $0 -r -d 10 /path/to/monorepo       # Recursive scan (depth: 10)"
+  echo "  $0 -r --depth 3 ~/Projects          # Recursive scan (depth: 3)"
   echo ""
   echo "Excluded directories: node_modules, .git, dist, build, .next, out, coverage, .turbo, .cache"
 }
@@ -56,6 +59,18 @@ parse_arguments() {
       -r|--recursive)
         RECURSIVE_MODE=true
         shift
+        ;;
+      -d|--depth)
+        if [[ -z "$2" || "$2" =~ ^- ]]; then
+          echo -e "${RED}❌ Error: --depth requires a numeric argument${NC}"
+          exit 1
+        fi
+        if ! [[ "$2" =~ ^[0-9]+$ ]]; then
+          echo -e "${RED}❌ Error: --depth must be a positive integer${NC}"
+          exit 1
+        fi
+        MAX_DEPTH="$2"
+        shift 2
         ;;
       -h|--help)
         show_help

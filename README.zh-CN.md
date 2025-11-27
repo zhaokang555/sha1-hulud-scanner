@@ -59,7 +59,8 @@ chmod +x sha1-hulud-scanner.sh
 
 ### 选项
 
-- `-r, --recursive` - 启用递归扫描（扫描最多 10 层深度的所有 Node.js 项目）
+- `-r, --recursive` - 启用递归扫描（默认深度：5 层）
+- `-d, --depth <N>` - 设置递归扫描的最大深度（默认：5）
 - `-h, --help` - 显示帮助信息
 - `-v, --version` - 显示版本信息
 
@@ -69,16 +70,19 @@ chmod +x sha1-hulud-scanner.sh
 # 扫描单个项目
 ./sha1-hulud-scanner.sh /path/to/your/project
 
-# 递归扫描 monorepo
+# 递归扫描 monorepo（默认深度 5 层）
 ./sha1-hulud-scanner.sh -r /path/to/monorepo
 
-# 扫描目录中的所有项目
-./sha1-hulud-scanner.sh -r ~/Projects
+# 递归扫描并自定义深度为 10 层
+./sha1-hulud-scanner.sh -r -d 10 /path/to/monorepo
+
+# 扫描目录中的所有项目（深度 3 层）
+./sha1-hulud-scanner.sh -r --depth 3 ~/Projects
 
 # 扫描当前目录
 ./sha1-hulud-scanner.sh .
 
-# 递归扫描当前目录
+# 递归扫描当前目录（深度 5 层）
 ./sha1-hulud-scanner.sh -r .
 ```
 
