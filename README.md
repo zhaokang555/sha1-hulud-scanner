@@ -59,7 +59,7 @@ chmod +x sha1-hulud-scanner.sh
 
 ### Options
 
-- `-r, --recursive` - Enable recursive scanning (scans all Node.js projects up to 3 levels deep)
+- `-r, --recursive` - Enable recursive scanning (scans all Node.js projects up to 10 levels deep)
 - `-h, --help` - Show help message
 - `-v, --version` - Show version information
 

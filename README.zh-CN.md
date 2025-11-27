@@ -59,7 +59,7 @@ chmod +x sha1-hulud-scanner.sh
 
 ### 选项
 
-- `-r, --recursive` - 启用递归扫描（扫描最多 3 层深度的所有 Node.js 项目）
+- `-r, --recursive` - 启用递归扫描（扫描最多 10 层深度的所有 Node.js 项目）
 - `-h, --help` - 显示帮助信息
 - `-v, --version` - 显示版本信息
 

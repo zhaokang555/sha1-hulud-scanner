@@ -23,7 +23,7 @@ FALSE_POSITIVES=(
 # Configuration constants for recursive mode
 RECURSIVE_MODE=false
 TARGET_DIR=""
-MAX_DEPTH=3
+MAX_DEPTH=10
 EXCLUDE_DIRS=("node_modules" ".git" "dist" "build" ".next" "out" "coverage" ".turbo" ".cache")
 
 # Runtime state for recursive mode
@@ -38,7 +38,7 @@ show_help() {
   echo "Usage: $0 [OPTIONS] <directory>"
   echo ""
   echo "Options:"
-  echo "  -r, --recursive    Enable recursive scanning (max depth: 3)"
+  echo "  -r, --recursive    Enable recursive scanning (max depth: 10)"
   echo "  -h, --help         Show this help"
   echo "  -v, --version      Show version"
   echo ""
